@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}{{ ("Editar " if usuario else "Registrar ") ~ tipo }}{% endblock %}
+{% block contenido %}
+{% set etiqueta = tipo %}
+<div class="encabezado">
+  <div>
+    {% if volver == "ticket" %}
+      <a class="enlace-volver" href="{{ url_for('tickets.nuevo') }}">{{ icono("volver") }} Nuevo ticket</a>
+    {% else %}
+      <a class="enlace-volver" href="{{ url_for('usuarios.lista', tipo=tipo) }}">{{ icono("volver") }} Usuarios</a>
+    {% endif %}
+    <h1>{{ ("Editar " if usuario else "Registrar ") ~ etiqueta }}</h1>
+    <p>
+      {% if usuario %}Modificá los datos de {{ usuario.nombre }}.
+      {% elif tipo == "cliente" %}Cargá los datos personales del nuevo cliente.
+      {% else %}Creá el acceso para un nuevo representante de atención.{% endif %}
+    </p>
+  </div>
+</div>
+
+<form method="post" class="tarjeta form-angosto" novalidate>
+  {{ csrf() }}
+  <div class="campo">
+    <label for="nombre">Nombre y apellido <span class="requerido">*</span></label>
+    <input id="nombre" name="nombre" type="text" value="{{ datos.nombre }}" maxlength="100" required autofocus>
+  </div>
+  <div class="campo">
+    <label for="email">Email <span class="requerido">*</span></label>
+    <input id="email" name="email" type="email" value="{{ datos.email }}" maxlength="120" required>
+    <span class="ayuda">Es el usuario para ingresar. No puede repetirse.</span>
+  </div>
+  <div class="fila-campos">
+    {% if tipo == "cliente" %}
+      <div class="campo">
+        <label for="dni">DNI</label>
+        <input id="dni" name="dni" type="text" value="{{ datos.dni }}" inputmode="numeric" maxlength="10" placeholder="Sin puntos">
+      </div>
+    {% endif %}
+    <div class="campo">
+      <label for="telefono">Teléfono</label>
+      <input id="telefono" name="telefono" type="text" value="{{ datos.telefono }}" maxlength="30">
+    </div>
+  </div>
+  <div class="campo">
+    <label for="password">{{ "Nueva contraseña" if usuario else "Contraseña" }} {% if not usuario %}<span class="requerido">*</span>{% endif %}</label>
+    <input id="password" name="password" type="password" minlength="6" autocomplete="new-password" {{ '' if usuario else 'required' }}>
+    <span class="ayuda">{{ "Dejala vacía para no cambiarla." if usuario else "Mínimo 6 caracteres." }}</span>
+  </div>
+
+  <div class="acciones-form">
+    <a class="btn btn-secundario" href="{{ url_for('tickets.nuevo') if volver == 'ticket' else url_for('usuarios.lista', tipo=tipo) }}">Cancelar</a>
+    <button class="btn btn-primario" type="submit">{{ icono("check") }} {{ "Guardar cambios" if usuario else "Registrar " ~ etiqueta }}</button>
+  </div>
+</form>
+{% endblock %}

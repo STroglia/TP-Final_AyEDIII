@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}{{ "Editar producto" if producto else "Nuevo producto" }}{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <a class="enlace-volver" href="{{ destino }}">{{ icono("volver") }} Volver</a>
+    <h1>{{ "Editar producto" if producto else "Nuevo producto" }}</h1>
+    <p>Indicá el nombre, el tipo y la categoría del producto.</p>
+  </div>
+</div>
+
+<form method="post" class="tarjeta form-angosto" novalidate>
+  {{ csrf() }}
+  <div class="campo">
+    <label for="nombre">Nombre <span class="requerido">*</span></label>
+    <input id="nombre" name="nombre" type="text" value="{{ datos.nombre }}" maxlength="120" required autofocus
+           placeholder="Ej.: Heladera No Frost 360L">
+  </div>
+  <div class="fila-campos">
+    <div class="campo">
+      <label for="tipo">Tipo de producto <span class="requerido">*</span></label>
+      <select id="tipo" name="tipo" required>
+        <option value="">Elegí un tipo</option>
+        {% for t in TipoProducto %}
+          <option value="{{ t.name }}" {{ 'selected' if datos.tipo == t.name }}>{{ t.value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="categoria_id">Categoría <span class="requerido">*</span></label>
+      <select id="categoria_id" name="categoria_id" required>
+        <option value="">Elegí una categoría</option>
+        {% for c in categorias %}
+          <option value="{{ c.id_categoria }}" {{ 'selected' if datos.categoria_id == c.id_categoria|string }}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+      {% if not categorias %}
+        <span class="ayuda">No hay categorías. <a href="{{ url_for('productos.lista') }}">Creá una</a> primero.</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="acciones-form">
+    <a class="btn btn-secundario" href="{{ destino }}">Cancelar</a>
+    <button class="btn btn-primario" type="submit">{{ icono("check") }} {{ "Guardar cambios" if producto else "Registrar producto" }}</button>
+  </div>
+</form>
+{% endblock %}

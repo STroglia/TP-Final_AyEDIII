@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block titulo %}Ingresar{% endblock %}
+{% block publico %}
+<div class="login">
+  <section class="login-panel">
+    <span class="tri tri-1" aria-hidden="true"></span>
+    <span class="tri tri-2" aria-hidden="true"></span>
+    <span class="tri tri-3" aria-hidden="true"></span>
+
+    <div class="marca marca-login">
+      <span class="marca-triangulo" aria-hidden="true"></span>
+      <span>TECNOSOL<small>Mar del Plata</small></span>
+    </div>
+
+    <div class="login-mensaje">
+      <h1>Bienvenido al Portal de Soporte de<br>TECNOSOL<br>Mar del Plata</h1>
+      <p>Gestioná tus tickets, consultá cómo avanzan tus reparaciones y hablá con nuestro equipo técnico, todo en un solo lugar.</p>
+    </div>
+
+    <ul class="login-puntos">
+      <li>{{ icono("fa-clock") }} Seguimiento en tiempo real</li>
+      <li>{{ icono("fa-chart-line") }} Trazabilidad y avances del servicio</li>
+      <li>{{ icono("fa-bell") }} Alertas sobre tus equipos</li>
+    </ul>
+  </section>
+
+  <section class="login-form">
+    <div class="login-caja">
+      <h2>Accedé al Portal TECNOSOL</h2>
+      <p class="texto-suave">Usá tu email y contraseña.</p>
+
+      {% include "_mensajes.html" %}
+
+      <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" value="{{ email }}" autocomplete="username" required autofocus>
+        </div>
+        <div class="campo">
+          <label for="password">Contraseña</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn btn-primario btn-bloque" type="submit">Ingresar {{ icono("flecha") }}</button>
+      </form>
+
+      <p class="login-registro">¿No tenés cuenta? <a href="{{ url_for('auth.registro') }}">Registrate</a></p>
+
+      {% if usuarios_demo %}
+        <div class="demo">
+          <strong>Usuarios de prueba</strong>
+          <p class="texto-suave">Hacé clic en uno para completar el formulario.</p>
+          <ul>
+            {% for rol, email_demo, clave in usuarios_demo %}
+              <li>
+                <button type="button" class="demo-usuario" data-email="{{ email_demo }}" data-clave="{{ clave }}">
+                  <span class="rol {{ 'rol-rep' if rol == 'Representante' }}">{{ rol }}</span>
+                  <span>{{ email_demo }}</span>
+                  <code>{{ clave }}</code>
+                </button>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+
+    <footer class="login-pie">
+      © 2026 TECNOSOL Mar del Plata. Todos los derechos reservados.
+    </footer>
+  </section>
+</div>
+{% endblock %}

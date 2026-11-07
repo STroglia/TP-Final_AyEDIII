@@ -1,0 +1,39 @@
+{# Componentes reutilizables de la interfaz #}
+
+{% macro badge_estado(estado) -%}
+  <span class="badge badge-{{ estado.name|lower }}">{{ estado.value }}</span>
+{%- endmacro %}
+
+{% macro avatar(usuario, chico=False) -%}
+  <span class="avatar {{ 'avatar-rep' if usuario.es_representante else 'avatar-cli' }}{{ ' avatar-sm' if chico }}"
+        title="{{ usuario.nombre }}">{{ usuario.iniciales }}</span>
+{%- endmacro %}
+
+{% macro rol(usuario) -%}
+  <span class="rol {{ 'rol-rep' if usuario.es_representante }}">{{ usuario.rol }}</span>
+{%- endmacro %}
+
+{% macro persona(usuario, detalle=None) -%}
+  <div class="persona">
+    {{ avatar(usuario, chico=True) }}
+    <div>
+      <div class="persona-nombre">{{ usuario.nombre }}</div>
+      {% if detalle %}<div class="texto-suave">{{ detalle }}</div>{% endif %}
+    </div>
+  </div>
+{%- endmacro %}
+
+{% macro vacio(icono_nombre, titulo, texto, accion_url=None, accion_texto=None) -%}
+  <div class="vacio">
+    {{ icono(icono_nombre, "icono-grande") }}
+    <h3>{{ titulo }}</h3>
+    <p>{{ texto }}</p>
+    {% if accion_url %}
+      <a class="btn btn-primario" href="{{ accion_url }}">{{ icono("mas") }} {{ accion_texto }}</a>
+    {% endif %}
+  </div>
+{%- endmacro %}
+
+{% macro csrf() -%}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}

@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avatar, badge_estado, csrf, persona, rol %}
+{% block titulo %}Ticket #{{ ticket.numero_ticket }}{% endblock %}
+{% block contenido %}
+{% set es_rep = usuario_actual.es_representante %}
+<div class="encabezado">
+  <div>
+    <a class="enlace-volver" href="{{ url_for('tickets.lista') }}">{{ icono("volver") }} {{ "Tickets" if es_rep else "Mis tickets" }}</a>
+    <div class="titulo-ticket">
+      <h1>Ticket #{{ ticket.numero_ticket }}</h1>
+      {{ badge_estado(ticket.estado) }}
+    </div>
+    <p>Creado el {{ ticket.fecha_creacion|fecha }} · última actividad {{ ticket.ultima_actividad|hace }}</p>
+  </div>
+  <div class="acciones">
+    {% if es_rep and ticket.en_cola %}
+      <form method="post" action="{{ url_for('tickets.tomar', numero=ticket.numero_ticket) }}">
+        {{ csrf() }}
+        <button class="btn btn-primario" type="submit">{{ icono("play") }} Tomar ticket</button>
+      </form>
+    {% elif es_rep and ticket.estado == EstadoTicket.ABIERTO and ticket.representante_id == usuario_actual.id %}
+      <form method="post" action="{{ url_for('tickets.en_proceso', numero=ticket.numero_ticket) }}">
+        {{ csrf() }}
+        <button class="btn btn-secundario" type="submit">{{ icono("play") }} Pasar a en proceso</button>
+      </form>
+    {% endif %}
+    {% if ticket.esta_cerrado %}
+      <form method="post" action="{{ url_for('tickets.reabrir', numero=ticket.numero_ticket) }}">
+        {{ csrf() }}
+        <button class="btn btn-secundario" type="submit">{{ icono("reabrir") }} Reabrir ticket</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('tickets.cerrar', numero=ticket.numero_ticket) }}"
+            data-confirmar="¿Cerrar el ticket #{{ ticket.numero_ticket }}? Se podrá reabrir más adelante.">
+        {{ csrf() }}
+        <button class="btn btn-oscuro" type="submit">{{ icono("check") }} Cerrar ticket</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if es_rep and ticket.producto_pendiente %}
+  <section class="tarjeta aviso-vincular" id="vincular-producto">
+    <div class="aviso-vincular-texto">
+      {{ icono("alerta") }}
+      <div>
+        <strong>Falta vincular el producto</strong>
+        <p>{{ "El cliente escribió" if ticket.creado_por and ticket.creado_por.es_cliente else "Se cargó a mano" }} <strong>«{{ ticket.producto_otro }}»</strong>{% if ticket.tipo_producto %} (tipo {{ ticket.tipo_producto.value }}){% endif %}.
+          Vinculalo con un producto del catálogo; es obligatorio para poder cerrar el ticket.</p>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('tickets.vincular_producto', numero=ticket.numero_ticket) }}" class="form-asignar">
+      {{ csrf() }}
+      <select name="producto_id" required aria-label="Producto del catálogo">
+        <option value="">— Elegí un producto existente —</option>
+        {% for tipo, grupo in productos|groupby('tipo.value') %}
+          <optgroup label="{{ tipo }}">
+            {% for p in grupo %}<option value="{{ p.id_producto }}">{{ p.nombre }}</option>{% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+      <button class="btn btn-secundario" type="submit">Vincular</button>
+      <a class="btn btn-primario" href="{{ url_for('productos.nuevo', nombre=ticket.producto_otro, tipo=ticket.tipo_producto.name if ticket.tipo_producto else None, volver='ticket-' ~ ticket.numero_ticket) }}">{{ icono("mas") }} No está: registrarlo</a>
+    </form>
+  </section>
+{% endif %}
+
+<div class="detalle">
+  <div class="detalle-principal">
+    <section class="tarjeta">
+      <h2 class="subtitulo">Incidencia</h2>
+      <p class="descripcion">{{ ticket.descripcion }}</p>
+    </section>
+
+    <section class="tarjeta" id="historial">
+      <div class="tarjeta-cabecera sin-borde">
+        <h2 class="subtitulo">Historial de hitos</h2>
+        <span class="texto-suave">{{ ticket.hitos|length }} {{ "mensaje" if ticket.hitos|length == 1 else "mensajes" }}</span>
+      </div>
+
+      <ol class="linea-tiempo">
+        <li class="hito hito-sistema">
+          <span class="hito-marca">{{ icono("ticket") }}</span>
+          <div class="hito-cuerpo">
+            <div class="hito-cabecera">
+              <strong>Ticket creado</strong>
+              <span class="texto-suave">{{ ticket.fecha_creacion|fecha }}</span>
+            </div>
+            <p class="hito-mensaje texto-suave">
+              {% set creador = ticket.creado_por %}
+              {% if creador and creador.es_cliente %}
+                Abierto por {{ "vos" if creador.id == usuario_actual.id else creador.nombre }}.
+                {% if ticket.en_cola %}Entró en la cola de atención.{% endif %}
+              {% elif creador %}
+                Registrado por {{ "vos" if creador.id == usuario_actual.id else creador.nombre }} para {{ ticket.cliente.nombre }}.
+              {% else %}
+                {# Tickets anteriores a este cambio: no se sabe quién lo abrió #}
+                Ticket de {{ ticket.cliente.nombre }}.{% if ticket.representante %} Lo atiende {{ ticket.representante.nombre }}.{% endif %}
+              {% endif %}
+            </p>
+          </div>
+        </li>
+        {% for h in ticket.hitos %}
+          <li class="hito {{ 'hito-propio' if h.es_de(usuario_actual) }}">
+            {{ avatar(h.autor) }}
+            <div class="hito-cuerpo">
+              <div class="hito-cabecera">
+                <strong>{{ h.autor.nombre }}</strong>
+                {{ rol(h.autor) }}
+                <span class="texto-suave" title="{{ h.fecha|fecha }}">{{ h.fecha|fecha }}</span>
+              </div>
+              <p class="hito-mensaje">{{ h.mensaje }}</p>
+            </div>
+          </li>
+        {% endfor %}
+        {% if ticket.esta_cerrado %}
+          <li class="hito hito-sistema">
+            <span class="hito-marca">{{ icono("check") }}</span>
+            <div class="hito-cuerpo">
+              <div class="hito-cabecera">
+                <strong>Ticket cerrado</strong>
+                <span class="texto-suave">{{ ticket.fecha_cierre|fecha }}</span>
+              </div>
+            </div>
+          </li>
+        {% endif %}
+      </ol>
+
+      {% if ticket.esta_cerrado %}
+        <div class="aviso">
+          {{ icono("alerta") }}
+          <span>El ticket está cerrado. Reabrilo para continuar la conversación.</span>
+        </div>
+      {% else %}
+        <form method="post" action="{{ url_for('tickets.registrar_hito', numero=ticket.numero_ticket) }}" class="form-respuesta" id="form-respuesta">
+          {{ csrf() }}
+          <label for="mensaje" class="campo-label">Responder</label>
+          <textarea id="mensaje" name="mensaje" rows="4" maxlength="2000" required
+                    data-contador="contador-mensaje"
+                    placeholder="{{ 'Escribí una actualización para el cliente…' if es_rep else 'Escribí tu consulta o respuesta…' }}"></textarea>
+          <div class="form-respuesta-pie">
+            <span class="ayuda texto-suave"><span id="contador-mensaje"></span> · Ctrl + Enter para enviar</span>
+            <button class="btn btn-primario" type="submit">{{ icono("enviar") }} Enviar hito</button>
+          </div>
+        </form>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="detalle-lateral">
+    <section class="tarjeta">
+      <h2 class="subtitulo">Datos del ticket</h2>
+      <dl class="datos">
+        <div class="dato">
+          <dt>Cliente</dt>
+          <dd>{{ persona(ticket.cliente, ticket.cliente.email) }}
+            {% if es_rep and ticket.cliente.telefono %}<span class="texto-suave bloque">Tel. {{ ticket.cliente.telefono }}</span>{% endif %}
+          </dd>
+        </div>
+        <div class="dato">
+          <dt>Representante</dt>
+          <dd>{% if ticket.representante %}{{ persona(ticket.representante) }}
+              {% elif ticket.en_cola %}<span class="etiqueta etiqueta-cola">En cola</span>
+                <span class="texto-suave bloque">{{ "Todavía nadie lo tomó." if es_rep else "En espera de que un representante lo tome." }}</span>
+              {% else %}<span class="texto-suave">Sin asignar</span>{% endif %}</dd>
+        </div>
+        <div class="dato">
+          <dt>Tipo de producto</dt>
+          <dd>{% if ticket.tipo_producto %}{{ ticket.tipo_producto.value }}{% else %}<span class="texto-suave">Sin tipo</span>{% endif %}</dd>
+        </div>
+        <div class="dato">
+          <dt>Producto</dt>
+          <dd>
+            {% if ticket.producto %}
+              {{ ticket.producto.nombre }}
+              {% if ticket.producto.categoria %}<span class="texto-suave bloque">{{ ticket.producto.categoria.nombre }}</span>{% endif %}
+              {% if ticket.producto_otro and es_rep %}<span class="texto-suave bloque">Se había cargado como «{{ ticket.producto_otro }}»</span>{% endif %}
+            {% elif ticket.producto_otro %}
+              {{ ticket.producto_otro }}
+              <span class="texto-suave bloque">{{ "Escrito a mano: falta vincularlo" if es_rep else "Lo va a registrar un representante" }}</span>
+              {% if es_rep %}<a class="enlace" href="#vincular-producto">Vincular producto</a>{% endif %}
+            {% else %}<span class="texto-suave">Sin producto asociado</span>{% endif %}
+          </dd>
+        </div>
+        {# "extra": ya figuran en el encabezado; en pantallas muy bajas se ocultan #}
+        <div class="dato dato-extra">
+          <dt>Estado</dt>
+          <dd>{{ badge_estado(ticket.estado) }}</dd>
+        </div>
+        <div class="dato dato-extra">
+          <dt>Fecha de creación</dt>
+          <dd>{{ ticket.fecha_creacion|fecha }}</dd>
+        </div>
+        {% if ticket.fecha_cierre %}
+          <div class="dato">
+            <dt>Fecha de cierre</dt>
+            <dd>{{ ticket.fecha_cierre|fecha }}</dd>
+          </div>
+        {% endif %}
+      </dl>
+    </section>
+
+    {% if es_rep and not ticket.esta_cerrado %}
+      <section class="tarjeta">
+        <h2 class="subtitulo">Asignar representante</h2>
+        <form method="post" action="{{ url_for('tickets.asignar', numero=ticket.numero_ticket) }}" class="form-asignar">
+          {{ csrf() }}
+          <select name="representante_id" aria-label="Representante">
+            {% for r in representantes %}
+              <option value="{{ r.id }}" {{ 'selected' if ticket.representante_id == r.id }}>{{ r.nombre }}{{ " (vos)" if r.id == usuario_actual.id }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-secundario" type="submit">Asignar</button>
+        </form>
+      </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+# Git normaliza los saltos de línea de los archivos de texto.
+* text=auto
+
+# Los .bat tienen que quedar con saltos de línea de Windows (CRLF):
+# con saltos de Linux (LF), cmd.exe puede ejecutarlos mal.
+*.bat text eol=crlf
+
+# Archivos binarios: no se tocan
+*.png binary
+*.ico binary
+*.db binary
+*.exe binary
+*.docx binary
+*.pdf binary

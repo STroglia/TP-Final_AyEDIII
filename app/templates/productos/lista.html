@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, vacio %}
+{% block titulo %}Productos{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Productos</h1>
+    <p>Productos que se pueden asociar a un ticket, con su tipo y categoría.</p>
+  </div>
+  <a class="btn btn-primario" href="{{ url_for('productos.nuevo') }}">{{ icono("mas") }} Nuevo producto</a>
+</div>
+
+<div class="grilla-productos">
+  <div>
+    <form class="filtros" method="get">
+      <div class="buscador">
+        {{ icono("buscar") }}
+        <input type="search" name="q" value="{{ filtros.busqueda or '' }}" placeholder="Buscar producto">
+      </div>
+      <select name="tipo" aria-label="Tipo de producto">
+        <option value="">Todos los tipos</option>
+        {% for t in TipoProducto %}
+          <option value="{{ t.name }}" {{ 'selected' if filtros.tipo == t.name }}>{{ t.value }}</option>
+        {% endfor %}
+      </select>
+      <select name="categoria" aria-label="Categoría">
+        <option value="">Todas las categorías</option>
+        {% for c in categorias %}
+          <option value="{{ c.id_categoria }}" {{ 'selected' if filtros.categoria_id == c.id_categoria|string }}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-secundario" type="submit">Filtrar</button>
+    </form>
+
+    <section class="tarjeta tarjeta-tabla">
+      {% if productos %}
+        <div class="tabla-contenedor">
+          <table class="tabla">
+            <thead>
+              <tr><th>Producto</th><th>Tipo</th><th>Categoría</th><th class="ocultar-movil">Tickets</th><th class="col-acciones"><span class="sr-only">Acciones</span></th></tr>
+            </thead>
+            <tbody>
+              {% for p in productos %}
+                <tr>
+                  <td><strong>{{ p.nombre }}</strong></td>
+                  <td><span class="etiqueta">{{ p.tipo.value }}</span></td>
+                  <td>{{ p.categoria.nombre if p.categoria else "—" }}</td>
+                  <td class="ocultar-movil texto-suave">{{ p.tickets|length }}</td>
+                  <td class="col-acciones">
+                    <a class="btn btn-texto btn-chico" href="{{ url_for('productos.editar', producto_id=p.id_producto) }}">{{ icono("editar") }}<span class="ocultar-movil">Editar</span></a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif filtros.busqueda or filtros.tipo or filtros.categoria_id %}
+        {{ vacio("buscar", "Sin resultados", "No hay productos que coincidan con los filtros.") }}
+      {% else %}
+        {{ vacio("producto", "Todavía no hay productos", "Registrá los productos sobre los que se abren tickets.", url_for('productos.nuevo'), "Nuevo producto") }}
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="tarjeta">
+    <h2 class="subtitulo">Tickets por tipo de producto</h2>
+    {% if por_tipo %}
+      <ul class="lista-categorias">
+        {% for tipo, cantidad in por_tipo %}
+          <li><span>{{ tipo.value if tipo else "Sin tipo" }}</span><span class="texto-suave">{{ cantidad }}</span></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="texto-suave">Todavía no hay tickets.</p>
+    {% endif %}
+
+    <h2 class="subtitulo" style="margin-top: 24px">Categorías</h2>
+    {% if categorias %}
+      <ul class="lista-categorias">
+        {% for c in categorias %}
+          <li>
+            <a href="{{ url_for('productos.lista', categoria=c.id_categoria) }}">{{ icono("etiqueta") }} {{ c.nombre }}</a>
+            <span class="texto-suave">{{ c.productos|length }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="texto-suave">Todavía no hay categorías.</p>
+    {% endif %}
+    <form method="post" action="{{ url_for('productos.crear_categoria') }}" class="form-en-linea">
+      {{ csrf() }}
+      <input type="text" name="nombre" placeholder="Nueva categoría" maxlength="80" required aria-label="Nombre de la categoría">
+      <button class="btn btn-secundario" type="submit" aria-label="Agregar categoría">{{ icono("mas") }}</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}

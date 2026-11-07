@@ -1,0 +1,89 @@
+{% from "_macros.html" import avatar, csrf %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Inicio{% endblock %} · TECNOSOL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+</head>
+<body>
+{% if usuario_actual %}
+  {% set seccion = request.blueprint %}
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <a class="marca" href="{{ url_for('panel.inicio') }}">
+        <span class="marca-triangulo" aria-hidden="true"></span>
+        <span>TECNOSOL<small>Mar del Plata</small></span>
+      </a>
+
+      <nav class="nav" aria-label="Menú principal">
+        <a href="{{ url_for('panel.inicio') }}" class="{{ 'activo' if seccion == 'panel' }}">{{ icono("inicio") }} Inicio</a>
+        {% set en_vista_cola = request.endpoint == 'tickets.lista' and request.args.get('cola') == '1' %}
+        <a href="{{ url_for('tickets.lista') }}" class="{{ 'activo' if seccion == 'tickets' and request.endpoint != 'tickets.nuevo' and not en_vista_cola }}">
+          {{ icono("ticket") }} {{ "Tickets" if usuario_actual.es_representante else "Mis tickets" }}
+        </a>
+        {% if usuario_actual.es_representante %}
+          <a href="{{ url_for('tickets.lista', cola=1) }}" class="{{ 'activo' if en_vista_cola }}">
+            {{ icono("bandeja") }} Cola de tickets
+            {% if tickets_en_cola %}<span class="contador">{{ tickets_en_cola }}</span>{% endif %}
+          </a>
+        {% endif %}
+        <a href="{{ url_for('tickets.nuevo') }}" class="{{ 'activo' if request.endpoint == 'tickets.nuevo' }}">{{ icono("mas") }} Nuevo ticket</a>
+        <a href="{{ url_for('productos.catalogo') }}" class="{{ 'activo' if request.endpoint == 'productos.catalogo' }}">{{ icono("etiqueta") }} Catálogo de productos</a>
+        {% if usuario_actual.es_representante %}
+          <div class="nav-titulo">Gestión</div>
+          <a href="{{ url_for('usuarios.lista') }}" class="{{ 'activo' if seccion == 'usuarios' }}">{{ icono("usuarios") }} Usuarios</a>
+          <a href="{{ url_for('productos.lista') }}" class="{{ 'activo' if seccion == 'productos' and request.endpoint != 'productos.catalogo' }}">{{ icono("producto") }} Productos</a>
+        {% endif %}
+        <div class="nav-titulo">Cuenta</div>
+        <a href="{{ url_for('notificaciones.lista') }}" class="{{ 'activo' if seccion == 'notificaciones' }}">
+          {{ icono("campana") }} Notificaciones
+          {% if notificaciones_no_leidas %}<span class="contador">{{ notificaciones_no_leidas }}</span>{% endif %}
+        </a>
+        <a href="{{ url_for('auth.cambiar_password') }}" class="{{ 'activo' if request.endpoint == 'auth.cambiar_password' }}">{{ icono("candado") }} Contraseña</a>
+      </nav>
+
+      <div class="sidebar-usuario">
+        {{ avatar(usuario_actual) }}
+        <div class="sidebar-usuario-datos">
+          <strong>{{ usuario_actual.nombre }}</strong>
+          <span>{{ usuario_actual.rol }}</span>
+        </div>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          {{ csrf() }}
+          <button class="btn-icono" type="submit" title="Cerrar sesión" aria-label="Cerrar sesión">{{ icono("salir") }}</button>
+        </form>
+      </div>
+    </aside>
+    <div class="velo" id="velo"></div>
+
+    <div class="contenido">
+      <header class="topbar">
+        <button class="btn-icono boton-menu" type="button" data-menu aria-label="Abrir menú">{{ icono("menu") }}</button>
+        <form class="buscador buscador-topbar" action="{{ url_for('tickets.lista') }}" method="get" role="search">
+          {{ icono("buscar") }}
+          <input type="search" name="q" placeholder="Buscar ticket por número, cliente o descripción…" aria-label="Buscar tickets">
+        </form>
+        <a class="campana" href="{{ url_for('notificaciones.lista') }}" title="Notificaciones" aria-label="Notificaciones">
+          {{ icono("campana") }}
+          {% if notificaciones_no_leidas %}<span class="campana-punto">{{ notificaciones_no_leidas }}</span>{% endif %}
+        </a>
+      </header>
+
+      <main>
+        {% include "_mensajes.html" %}
+        {% block contenido %}{% endblock %}
+      </main>
+    </div>
+  </div>
+{% else %}
+  {% block publico %}{% endblock %}
+{% endif %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

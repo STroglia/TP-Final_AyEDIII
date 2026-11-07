@@ -1,0 +1,13 @@
+{% with mensajes = get_flashed_messages(with_categories=true) %}
+  {% if mensajes %}
+    <div class="mensajes" role="status">
+      {% for categoria, mensaje in mensajes %}
+        <div class="mensaje mensaje-{{ categoria }}">
+          {{ icono("check" if categoria == "exito" else "alerta") }}
+          <span>{{ mensaje }}</span>
+          <button type="button" class="cerrar" aria-label="Cerrar mensaje">{{ icono("cerrar") }}</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}

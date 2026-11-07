@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, vacio %}
+{% block titulo %}Notificaciones{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Notificaciones</h1>
+    <p>Avisos sobre la actividad de tus tickets.</p>
+  </div>
+  {% if notificaciones_no_leidas %}
+    <form method="post" action="{{ url_for('notificaciones.leer_todas') }}">
+      {{ csrf() }}
+      <button class="btn btn-secundario" type="submit">{{ icono("check") }} Marcar todas como leídas</button>
+    </form>
+  {% endif %}
+</div>
+
+<div class="chips">
+  <a class="chip {{ 'activo' if not solo_no_leidas }}" href="{{ url_for('notificaciones.lista') }}">Todas</a>
+  <a class="chip {{ 'activo' if solo_no_leidas }}" href="{{ url_for('notificaciones.lista', filtro='no-leidas') }}">No leídas <span class="cant">{{ notificaciones_no_leidas }}</span></a>
+</div>
+
+<section class="tarjeta tarjeta-tabla">
+  {% if notificaciones %}
+    <ul class="lista-notificaciones">
+      {% for n in notificaciones %}
+        <li class="notif {{ 'no-leida' if not n.leida }}">
+          <span class="aviso-punto" aria-hidden="true"></span>
+          <div class="notif-cuerpo">
+            <p>{{ n.mensaje }}</p>
+            <span class="texto-suave">{{ n.fecha_envio|fecha }} · {{ n.fecha_envio|hace }}</span>
+          </div>
+          <div class="notif-acciones">
+            {% if n.ticket_id %}
+              <a class="btn btn-secundario btn-chico" href="{{ url_for('notificaciones.ir', notificacion_id=n.id) }}">Ver ticket #{{ n.ticket_id }}</a>
+            {% endif %}
+            {% if not n.leida %}
+              <form method="post" action="{{ url_for('notificaciones.marcar_leida', notificacion_id=n.id) }}">
+                {{ csrf() }}
+                <button class="btn btn-texto btn-chico" type="submit" title="Marcar como leída">{{ icono("check") }}</button>
+              </form>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {{ vacio("bandeja", "Estás al día", "No hay notificaciones para mostrar.") }}
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block titulo %}Crear cuenta{% endblock %}
+{% block publico %}
+<div class="login">
+  <section class="login-panel">
+    <span class="tri tri-1" aria-hidden="true"></span>
+    <span class="tri tri-2" aria-hidden="true"></span>
+    <span class="tri tri-3" aria-hidden="true"></span>
+
+    <div class="marca marca-login">
+      <span class="marca-triangulo" aria-hidden="true"></span>
+      <span>TECNOSOL<small>Mar del Plata</small></span>
+    </div>
+
+    <div class="login-mensaje">
+      <h1>Creá tu cuenta</h1>
+      <p>Registrate para consultar el estado de tus reparaciones y comunicarte con el equipo técnico de TECNOSOL Mar del Plata.</p>
+    </div>
+
+    <ul class="login-puntos">
+      <li>{{ icono("ticket") }} Tickets con número y estado</li>
+      <li>{{ icono("reloj") }} Historial completo de hitos</li>
+      <li>{{ icono("campana") }} Notificaciones automáticas</li>
+    </ul>
+  </section>
+
+  <section class="login-form">
+    <div class="login-caja">
+      <h2>Crear cuenta</h2>
+      <p class="texto-suave">Completá tus datos. Los campos con <span class="requerido">*</span> son obligatorios.</p>
+
+      {% include "_mensajes.html" %}
+
+      <form method="post" action="{{ url_for('auth.registro') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="campo">
+          <label for="nombre">Nombre y apellido <span class="requerido">*</span></label>
+          <input id="nombre" name="nombre" type="text" value="{{ datos.nombre }}" maxlength="100" required autofocus>
+        </div>
+        <div class="campo">
+          <label for="email">Email <span class="requerido">*</span></label>
+          <input id="email" name="email" type="email" value="{{ datos.email }}" maxlength="120" autocomplete="username" required>
+          <span class="ayuda">Es el usuario para ingresar. No puede repetirse.</span>
+        </div>
+        <div class="fila-campos">
+          <div class="campo" id="campo-dni">
+            <label for="dni">DNI</label>
+            <input id="dni" name="dni" type="text" value="{{ datos.dni }}" inputmode="numeric" maxlength="10" placeholder="Sin puntos">
+          </div>
+          <div class="campo">
+            <label for="telefono">Teléfono</label>
+            <input id="telefono" name="telefono" type="text" value="{{ datos.telefono }}" maxlength="30">
+          </div>
+        </div>
+        <div class="fila-campos">
+          <div class="campo">
+            <label for="password">Contraseña <span class="requerido">*</span></label>
+            <input id="password" name="password" type="password" minlength="6" autocomplete="new-password" required>
+            <span class="ayuda">Mínimo 6 caracteres.</span>
+          </div>
+          <div class="campo">
+            <label for="password2">Repetir contraseña <span class="requerido">*</span></label>
+            <input id="password2" name="password2" type="password" minlength="6" autocomplete="new-password" required>
+          </div>
+        </div>
+        <button class="btn btn-primario btn-bloque" type="submit">Crear cuenta</button>
+      </form>
+
+      <p class="ayuda registro-nota">Las cuentas que se crean acá son de cliente. Los representantes los da de alta el equipo de soporte desde la gestión de usuarios.</p>
+
+      <p class="login-registro">¿Ya tenés cuenta? <a href="{{ url_for('auth.login') }}">Ingresar</a></p>
+    </div>
+
+    <footer class="login-pie">
+      © 2026 TECNOSOL Mar del Plata. Todos los derechos reservados.
+    </footer>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge_estado, csrf, vacio %}
+{% block titulo %}Inicio{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Hola, {{ usuario_actual.nombre.split()[0] }}</h1>
+    <p>
+      {% if usuario_actual.es_representante %}
+        Este es el estado general de los tickets de soporte.
+      {% else %}
+        Acá podés seguir el avance de tus tickets.
+      {% endif %}
+    </p>
+  </div>
+  <a class="btn btn-primario" href="{{ url_for('tickets.nuevo') }}">{{ icono("mas") }} Nuevo ticket</a>
+</div>
+
+<div class="grilla-stats">
+  <a class="stat" href="{{ url_for('tickets.lista') }}">
+    <span class="stat-etiqueta">Total de tickets</span>
+    <span class="stat-numero">{{ resumen.total }}</span>
+  </a>
+  <a class="stat stat-destacada" href="{{ url_for('tickets.lista', estado='abierto') }}">
+    <span class="stat-etiqueta"><span class="punto punto-abierto"></span>Abiertos</span>
+    <span class="stat-numero">{{ resumen.abiertos }}</span>
+  </a>
+  <a class="stat" href="{{ url_for('tickets.lista', estado='en_proceso') }}">
+    <span class="stat-etiqueta"><span class="punto punto-en_proceso"></span>En proceso</span>
+    <span class="stat-numero">{{ resumen.en_proceso }}</span>
+  </a>
+  <a class="stat" href="{{ url_for('tickets.lista', estado='cerrado') }}">
+    <span class="stat-etiqueta"><span class="punto punto-cerrado"></span>Cerrados</span>
+    <span class="stat-numero">{{ resumen.cerrados }}</span>
+  </a>
+</div>
+
+{% if mis_asignados is not none %}
+  {% if en_cola %}
+    <div class="nota-asignados nota-cola">
+      {{ icono("bandeja") }}
+      <span>{% if en_cola == 1 %}Hay <strong>1</strong> ticket esperando en la cola.{% else %}Hay <strong>{{ en_cola }}</strong> tickets esperando en la cola.{% endif %}</span>
+      <a href="{{ url_for('tickets.lista', cola=1) }}">Ver la cola {{ icono("flecha") }}</a>
+      <form method="post" action="{{ url_for('tickets.tomar_siguiente') }}" class="nota-cola-form">
+        {{ csrf() }}
+        <button class="btn btn-primario btn-chico" type="submit">{{ icono("play") }} Tomar el siguiente</button>
+      </form>
+    </div>
+  {% endif %}
+  <p class="nota-asignados">
+    {{ icono("usuario") }}
+    {% set activos = mis_asignados.abiertos + mis_asignados.en_proceso %}
+    {% if activos == 0 %}No tenés tickets activos asignados.
+    {% elif activos == 1 %}Tenés <strong>1</strong> ticket activo asignado a vos.
+    {% else %}Tenés <strong>{{ activos }}</strong> tickets activos asignados a vos.{% endif %}
+    <a href="{{ url_for('tickets.lista', mios=1) }}">Ver mis tickets {{ icono("flecha") }}</a>
+  </p>
+{% endif %}
+
+<div class="grilla-panel">
+  <section class="tarjeta tarjeta-tabla">
+    <div class="tarjeta-cabecera">
+      <h2>{{ "Tickets recientes" if usuario_actual.es_representante else "Mis tickets recientes" }}</h2>
+      <a class="enlace" href="{{ url_for('tickets.lista') }}">Ver todos {{ icono("flecha") }}</a>
+    </div>
+    {% if recientes %}
+      <ul class="lista-simple">
+        {% for t in recientes %}
+          <li>
+            <a href="{{ url_for('tickets.detalle', numero=t.numero_ticket) }}" class="fila-ticket">
+              <span class="numero">#{{ t.numero_ticket }}</span>
+              <span class="fila-ticket-texto">
+                <strong>{{ t.titulo }}</strong>
+                <span class="texto-suave">
+                  {% if usuario_actual.es_representante %}{{ t.cliente.nombre }} · {% endif %}{{ t.ultima_actividad|hace }}
+                </span>
+              </span>
+              {{ badge_estado(t.estado) }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% if usuario_actual.es_representante %}
+        {{ vacio("ticket", "Todavía no hay tickets", "Cuando registres el primero, va a aparecer acá.", url_for('tickets.nuevo'), "Crear ticket") }}
+      {% else %}
+        {{ vacio("ticket", "No tenés tickets asociados", "Si tenés un problema o una consulta, abrí un ticket y te respondemos.", url_for('tickets.nuevo'), "Abrir ticket") }}
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="tarjeta tarjeta-tabla">
+    <div class="tarjeta-cabecera">
+      <h2>Últimas notificaciones</h2>
+      <a class="enlace" href="{{ url_for('notificaciones.lista') }}">Ver todas {{ icono("flecha") }}</a>
+    </div>
+    {% if avisos %}
+      <ul class="lista-simple">
+        {% for n in avisos %}
+          <li>
+            <a class="fila-aviso {{ 'no-leida' if not n.leida }}" href="{{ url_for('notificaciones.ir', notificacion_id=n.id) }}">
+              <span class="aviso-punto"></span>
+              <span>
+                {{ n.mensaje }}
+                <span class="texto-suave bloque">{{ n.fecha_envio|hace }}</span>
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {{ vacio("bandeja", "Sin notificaciones", "Te avisamos acá cuando haya novedades en tus tickets.") }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

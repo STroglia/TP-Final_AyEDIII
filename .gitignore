@@ -1,0 +1,25 @@
+# Entorno de Python: se crea solo en cada PC con iniciar.bat
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Base de datos, clave secreta y registro de errores: son de cada instalación
+# (la base se crea sola con los datos de ejemplo). La clave secreta NO se publica.
+instancia/
+*.log
+
+# Ejecutable y archivos de PyInstaller: se generan con construir_exe.bat
+# (el .exe se publica en "Releases" de GitHub, no en el código)
+*.exe
+build/
+dist/
+*.spec
+
+# Respaldos y carpetas de herramientas
+respaldo*.zip
+.claude/
+
+# Archivos que crea Windows
+Thumbs.db
+desktop.ini

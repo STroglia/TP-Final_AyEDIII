@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, persona, rol, vacio %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Usuarios</h1>
+    <p>Clientes y representantes del sistema. Un mismo email no se puede registrar dos veces.</p>
+  </div>
+  <div class="acciones">
+    <a class="btn btn-secundario" href="{{ url_for('usuarios.nuevo', tipo='representante') }}">{{ icono("mas") }} Representante</a>
+    <a class="btn btn-primario" href="{{ url_for('usuarios.nuevo', tipo='cliente') }}">{{ icono("mas") }} Cliente</a>
+  </div>
+</div>
+
+<div class="chips">
+  <a class="chip {{ 'activo' if not tipo }}" href="{{ url_for('usuarios.lista', q=busqueda or None) }}">Todos <span class="cant">{{ conteo.todos }}</span></a>
+  <a class="chip {{ 'activo' if tipo == 'cliente' }}" href="{{ url_for('usuarios.lista', tipo='cliente', q=busqueda or None) }}">Clientes <span class="cant">{{ conteo.cliente }}</span></a>
+  <a class="chip {{ 'activo' if tipo == 'representante' }}" href="{{ url_for('usuarios.lista', tipo='representante', q=busqueda or None) }}">Representantes <span class="cant">{{ conteo.representante }}</span></a>
+</div>
+
+<form class="filtros" method="get">
+  {% if tipo %}<input type="hidden" name="tipo" value="{{ tipo }}">{% endif %}
+  <div class="buscador">
+    {{ icono("buscar") }}
+    <input type="search" name="q" value="{{ busqueda }}" placeholder="Buscar por nombre, email o DNI">
+  </div>
+  <button class="btn btn-secundario" type="submit">Buscar</button>
+</form>
+
+<section class="tarjeta tarjeta-tabla">
+  {% if usuarios %}
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th class="ocultar-movil">DNI / Teléfono</th>
+            <th>Estado</th>
+            <th class="col-acciones"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in usuarios %}
+            <tr class="{{ 'fila-inactiva' if not u.activo }}">
+              <td>{{ persona(u) }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ rol(u) }}</td>
+              <td class="ocultar-movil texto-suave">
+                {% if u.es_cliente and u.dni %}DNI {{ u.dni }}{% endif %}
+                {% if u.telefono %}<span class="bloque">{{ u.telefono }}</span>{% endif %}
+                {% if not (u.es_cliente and u.dni) and not u.telefono %}—{% endif %}
+              </td>
+              <td>
+                {% if u.activo %}<span class="estado-usuario activo">Activo</span>{% else %}<span class="estado-usuario">De baja</span>{% endif %}
+              </td>
+              <td class="col-acciones">
+                <a class="btn btn-texto btn-chico" href="{{ url_for('usuarios.editar', usuario_id=u.id) }}" title="Editar">{{ icono("editar") }}<span class="ocultar-movil">Editar</span></a>
+                {% if u.id != usuario_actual.id %}
+                  <form method="post" action="{{ url_for('usuarios.cambiar_estado', usuario_id=u.id) }}"
+                        {% if u.activo %}data-confirmar="¿Dar de baja a {{ u.nombre }}? No podrá ingresar al sistema."{% endif %}>
+                    {{ csrf() }}
+                    <input type="hidden" name="activo" value="{{ '0' if u.activo else '1' }}">
+                    <button class="btn btn-texto btn-chico" type="submit">{{ "Dar de baja" if u.activo else "Reactivar" }}</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {{ vacio("usuarios", "Sin resultados", "No hay usuarios que coincidan con la búsqueda.") }}
+  {% endif %}
+</section>
+{% endblock %}

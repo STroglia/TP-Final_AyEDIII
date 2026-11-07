@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge_estado, csrf, persona, vacio %}
+{% block titulo %}{{ "Tickets" if usuario_actual.es_representante else "Mis tickets" }}{% endblock %}
+{% block contenido %}
+{% set es_rep = usuario_actual.es_representante %}
+<div class="encabezado">
+  <div>
+    {% if filtros.en_cola %}
+      <h1>Cola de tickets</h1>
+      <p>Tickets que abrieron los clientes y todavía nadie tomó, por orden de llegada.</p>
+    {% else %}
+      <h1>{{ "Tickets" if es_rep else "Mis tickets" }}</h1>
+      <p>{{ "Todos los casos de soporte registrados." if es_rep else "Tus consultas en todos sus estados." }}</p>
+    {% endif %}
+  </div>
+  <div class="acciones">
+    {% if es_rep and en_cola %}
+      <form method="post" action="{{ url_for('tickets.tomar_siguiente') }}">
+        {{ csrf() }}
+        <button class="btn btn-primario" type="submit">{{ icono("play") }} Tomar el siguiente <span class="cant-boton">{{ en_cola }} en cola</span></button>
+      </form>
+    {% endif %}
+    <a class="btn {{ 'btn-secundario' if es_rep and en_cola else 'btn-primario' }}" href="{{ url_for('tickets.nuevo') }}">{{ icono("mas") }} Nuevo ticket</a>
+  </div>
+</div>
+
+{# Chips por estado (mantienen la búsqueda actual) #}
+{% set base = {"q": filtros.busqueda or "", "mios": "1" if filtros.solo_mios else "", "orden": filtros.orden, "periodo": filtros.periodo or ""} %}
+<div class="chips">
+  {% if es_rep %}
+    <a class="chip chip-cola {{ 'activo' if filtros.en_cola }}" href="{{ url_for('tickets.lista', cola=1) }}">{{ icono("bandeja") }} En cola <span class="cant">{{ en_cola }}</span></a>
+  {% endif %}
+  <a class="chip {{ 'activo' if not filtros.estado and not filtros.en_cola }}" href="{{ url_for('tickets.lista', **base) }}">Todos <span class="cant">{{ resumen.total }}</span></a>
+  <a class="chip {{ 'activo' if filtros.estado == 'ABIERTO' }}" href="{{ url_for('tickets.lista', estado='abierto', **base) }}">Abiertos <span class="cant">{{ resumen.abiertos }}</span></a>
+  <a class="chip {{ 'activo' if filtros.estado == 'EN_PROCESO' }}" href="{{ url_for('tickets.lista', estado='en_proceso', **base) }}">En proceso <span class="cant">{{ resumen.en_proceso }}</span></a>
+  <a class="chip {{ 'activo' if filtros.estado == 'CERRADO' }}" href="{{ url_for('tickets.lista', estado='cerrado', **base) }}">Cerrados <span class="cant">{{ resumen.cerrados }}</span></a>
+</div>
+
+<form class="filtros" method="get">
+  {% if filtros.estado %}<input type="hidden" name="estado" value="{{ filtros.estado|lower }}">{% endif %}
+  {% if filtros.en_cola %}<input type="hidden" name="cola" value="1">{% endif %}
+  <div class="buscador">
+    {{ icono("buscar") }}
+    <input type="search" name="q" value="{{ filtros.busqueda or '' }}" placeholder="N° de ticket, cliente o descripción">
+  </div>
+  <select name="orden" aria-label="Ordenar">
+    <option value="recientes" {{ 'selected' if filtros.orden == 'recientes' }}>Más recientes</option>
+    <option value="antiguos" {{ 'selected' if filtros.orden == 'antiguos' }}>Más antiguos</option>
+    <option value="numero" {{ 'selected' if filtros.orden == 'numero' }}>Por número</option>
+  </select>
+  <select name="periodo" aria-label="Período">
+    <option value="" {{ 'selected' if not filtros.periodo }}>Cualquier fecha</option>
+    <option value="7" {{ 'selected' if filtros.periodo == '7' }}>Últimos 7 días</option>
+    <option value="30" {{ 'selected' if filtros.periodo == '30' }}>Últimos 30 días</option>
+    <option value="90" {{ 'selected' if filtros.periodo == '90' }}>Últimos 90 días</option>
+  </select>
+  {% if es_rep %}
+    <label class="check">
+      <input type="checkbox" name="mios" value="1" {{ 'checked' if filtros.solo_mios }}> Solo asignados a mí
+    </label>
+  {% endif %}
+  <button class="btn btn-secundario" type="submit">Filtrar</button>
+</form>
+
+<section class="tarjeta tarjeta-tabla">
+  {% if tickets %}
+    <div class="tabla-contenedor">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Descripción</th>
+            {% if es_rep %}<th>Cliente</th>{% endif %}
+            <th class="ocultar-movil">Producto</th>
+            <th class="ocultar-movil">Representante</th>
+            <th>Estado</th>
+            <th class="ocultar-movil">Actividad</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tickets %}
+            <tr data-href="{{ url_for('tickets.detalle', numero=t.numero_ticket) }}">
+              <td><a class="numero" href="{{ url_for('tickets.detalle', numero=t.numero_ticket) }}">#{{ t.numero_ticket }}</a></td>
+              <td>
+                <strong class="celda-titulo">{{ t.titulo }}</strong>
+                <span class="texto-suave bloque">Creado el {{ t.fecha_creacion|fecha }}</span>
+              </td>
+              {% if es_rep %}<td>{{ persona(t.cliente) }}</td>{% endif %}
+              <td class="ocultar-movil">
+                {% if t.producto %}{{ t.producto.nombre }}{% elif t.producto_otro %}{{ t.producto_otro }}{% if usuario_actual.es_representante %} <span class="etiqueta etiqueta-alerta">Vincular</span>{% else %} <span class="texto-suave">(escrito)</span>{% endif %}{% else %}—{% endif %}
+                {% if t.tipo_producto %}<span class="texto-suave bloque">{{ t.tipo_producto.value }}</span>{% endif %}
+              </td>
+              <td class="ocultar-movil">
+                {% if t.representante %}{{ t.representante.nombre }}
+                {% elif t.en_cola %}<span class="etiqueta etiqueta-cola">En cola</span>
+                {% else %}<span class="texto-suave">Sin asignar</span>{% endif %}
+              </td>
+              <td>{{ badge_estado(t.estado) }}</td>
+              <td class="ocultar-movil texto-suave">{{ t.ultima_actividad|hace }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if pagina.paginas > 1 %}
+      <nav class="paginacion" aria-label="Páginas">
+        <span class="texto-suave">{{ pagina.desde }}–{{ pagina.hasta }} de {{ pagina.total }}</span>
+        <div class="paginacion-botones">
+          {% if pagina.anterior %}
+            <a class="btn btn-secundario btn-chico" href="{{ url_for('tickets.lista', pagina=pagina.anterior, **args_pagina) }}">‹ Anterior</a>
+          {% endif %}
+          <span class="paginacion-actual">Página {{ pagina.pagina }} de {{ pagina.paginas }}</span>
+          {% if pagina.siguiente %}
+            <a class="btn btn-secundario btn-chico" href="{{ url_for('tickets.lista', pagina=pagina.siguiente, **args_pagina) }}">Siguiente ›</a>
+          {% endif %}
+        </div>
+      </nav>
+    {% endif %}
+  {% elif filtros.en_cola and not (filtros.busqueda or filtros.estado or filtros.solo_mios or filtros.periodo) %}
+    {{ vacio("bandeja", "La cola está vacía", "No hay tickets esperando. Cuando un cliente abra uno, va a aparecer acá.") }}
+  {% elif filtros.busqueda or filtros.estado or filtros.solo_mios or filtros.periodo %}
+    {{ vacio("buscar", "Sin resultados", "No hay tickets que coincidan con los filtros elegidos.") }}
+  {% elif es_rep %}
+    {{ vacio("ticket", "Todavía no hay tickets", "Registrá el primer caso de soporte.", url_for('tickets.nuevo'), "Crear ticket") }}
+  {% else %}
+    {{ vacio("ticket", "No tenés tickets asociados", "Si tenés un problema o una consulta, abrí un ticket y te respondemos.", url_for('tickets.nuevo'), "Abrir ticket") }}
+  {% endif %}
+</section>
+{% endblock %}

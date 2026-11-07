@@ -1,0 +1,4 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}{% include "_error_contenido.html" %}{% endblock %}
+{% block publico %}<div class="error-publico">{% include "_error_contenido.html" %}</div>{% endblock %}

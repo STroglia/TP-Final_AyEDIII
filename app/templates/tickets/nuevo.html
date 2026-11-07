@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avatar, csrf %}
+{% block titulo %}Nuevo ticket{% endblock %}
+{% block contenido %}
+{% set es_rep = usuario_actual.es_representante %}
+<div class="encabezado">
+  <div>
+    <a class="enlace-volver" href="{{ url_for('tickets.lista') }}">{{ icono("volver") }} {{ "Tickets" if es_rep else "Mis tickets" }}</a>
+    <h1>Nuevo ticket</h1>
+    {% if es_rep %}
+      <p>Registrá la incidencia que te plantea el cliente. El ticket se crea en estado <strong>Abierto</strong>.</p>
+    {% else %}
+      <p>Contanos qué problema tenés. Tu ticket entra en la cola de atención y un representante lo toma y te responde por acá.</p>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post" class="form-ticket{{ ' form-ticket-dos-columnas' if es_rep }}" novalidate>
+  {{ csrf() }}
+  {% if es_rep %}
+  <section class="tarjeta">
+    <div class="paso"><span class="paso-numero">1</span><h2>Cliente</h2></div>
+
+    {% if clientes %}
+      <div class="fila-busqueda">
+        <div class="buscador">
+          {{ icono("buscar") }}
+          <input type="search" id="filtro-clientes" placeholder="Buscar por nombre, email o DNI" autocomplete="off">
+        </div>
+        <a class="btn btn-secundario" href="{{ url_for('usuarios.nuevo', tipo='cliente', volver='ticket') }}">{{ icono("mas") }} Registrar cliente</a>
+      </div>
+      <div class="lista-clientes" role="radiogroup" aria-label="Clientes">
+        {% for c in clientes %}
+          <label class="opcion-cliente" data-buscar="{{ c.nombre }} {{ c.email }} {{ c.dni or '' }}">
+            <input type="radio" name="cliente_id" value="{{ c.id }}" {{ 'checked' if datos.cliente_id == c.id|string }} required>
+            {{ avatar(c, chico=True) }}
+            <span class="opcion-datos">
+              <strong>{{ c.nombre }}</strong>
+              <span class="texto-suave">{{ c.email }}{% if c.dni %} · DNI {{ c.dni }}{% endif %}</span>
+            </span>
+          </label>
+        {% endfor %}
+        <p class="sin-resultados" id="sin-resultados-clientes" hidden>
+          No encontramos ese cliente. <a href="{{ url_for('usuarios.nuevo', tipo='cliente', volver='ticket') }}">Registralo acá</a>.
+        </p>
+      </div>
+    {% else %}
+      <div class="aviso">
+        {{ icono("alerta") }}
+        <span>Todavía no hay clientes registrados.
+          <a href="{{ url_for('usuarios.nuevo', tipo='cliente', volver='ticket') }}">Registrá el primero</a>.</span>
+      </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="tarjeta">
+    {% if es_rep %}
+      <div class="paso"><span class="paso-numero">2</span><h2>Incidencia</h2></div>
+    {% else %}
+      <div class="paso"><h2>Tu consulta</h2></div>
+      <p class="texto-suave" style="margin: -8px 0 18px">El ticket queda a nombre de <strong>{{ usuario_actual.nombre }}</strong> ({{ usuario_actual.email }}).</p>
+    {% endif %}
+    {# Si llega solo el producto (desde el catálogo), el tipo se toma del producto. #}
+    {% set tipo_elegido = datos.tipo_producto or (productos|selectattr('id_producto', 'equalto', datos.producto_id|int(0))|map(attribute='tipo.name')|first) or '' %}
+    <div class="campos-producto">
+      <div class="campo">
+        <label for="tipo_producto">Tipo de producto <span class="requerido">*</span></label>
+        <select id="tipo_producto" name="tipo_producto" required>
+          <option value="">— Elegí un tipo —</option>
+          {% for t in TipoProducto %}
+            <option value="{{ t.name }}" {{ 'selected' if tipo_elegido == t.name }}>{{ t.value }}</option>
+          {% endfor %}
+          <option value="OTRO" {{ 'selected' if tipo_elegido == 'OTRO' }}>Otro / no está</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="producto_id">Producto <span class="requerido">*</span></label>
+        <select id="producto_id" name="producto_id" required>
+          <option value="">— Elegí primero el tipo —</option>
+          {% for p in productos %}
+            <option value="{{ p.id_producto }}" data-tipo="{{ p.tipo.name }}" {{ 'selected' if datos.producto_id == p.id_producto|string }}>
+              {{ p.nombre }}{% if p.categoria %} · {{ p.categoria.nombre }}{% endif %}
+            </option>
+          {% endfor %}
+          <option value="OTRO" data-tipo="*" {{ 'selected' if datos.producto_id == 'OTRO' }}>Otro (lo escribo)
+        </select>
+        <span class="ayuda">¿No sabés cuál es? <a href="{{ url_for('productos.catalogo') }}" target="_blank" rel="noopener">Ver catálogo</a></span>
+      </div>
+    </div>
+    <div class="campo" id="campo-producto-otro" hidden>
+      <label for="producto_otro">¿Qué producto es? <span class="requerido">*</span></label>
+      <input id="producto_otro" name="producto_otro" type="text" maxlength="120" value="{{ datos.producto_otro }}"
+             placeholder="Ej.: Freezer horizontal marca X, modelo 300L (tipo, marca, modelo)">
+      <span class="ayuda">{{ "Antes de cerrar el ticket vas a tener que vincularlo con un producto del catálogo." if es_rep else "Escribilo lo más completo que puedas. Un representante lo va a registrar." }}</span>
+    </div>
+    <div class="campo">
+      <label for="descripcion">{{ "Descripción de la incidencia" if es_rep else "¿Qué te pasa?" }} <span class="requerido">*</span></label>
+      <textarea id="descripcion" name="descripcion" maxlength="2000" minlength="10" required rows="4"
+                data-contador="contador-descripcion"
+                placeholder="{{ 'Contá qué le pasa al cliente: qué falla, desde cuándo, qué probó…' if es_rep else 'Contanos qué falla, desde cuándo y qué probaste…' }}">{{ datos.descripcion }}</textarea>
+      <span class="ayuda"><span id="contador-descripcion"></span> · mínimo 10 caracteres</span>
+    </div>
+  </section>
+
+  <div class="acciones-form">
+    <a class="btn btn-secundario" href="{{ url_for('tickets.lista') }}">Cancelar</a>
+    <button class="btn btn-primario" type="submit">{{ icono("check") }} Crear ticket</button>
+  </div>
+</form>
+{% endblock %}

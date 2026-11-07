@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_macros.html" import vacio %}
+{% block titulo %}Catálogo de productos{% endblock %}
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Catálogo de productos</h1>
+    <p>Productos sobre los que se pueden abrir tickets, ordenados por tipo. Elegí uno para abrir un ticket directamente.</p>
+  </div>
+  {% if usuario_actual.es_representante %}
+    <div class="acciones">
+      <a class="btn btn-secundario" href="{{ url_for('productos.lista') }}">{{ icono("editar") }} Administrar</a>
+      <a class="btn btn-primario" href="{{ url_for('productos.nuevo', volver='catalogo') }}">{{ icono("mas") }} Nuevo producto</a>
+    </div>
+  {% endif %}
+</div>
+
+<form class="filtros" method="get">
+  <div class="buscador">
+    {{ icono("buscar") }}
+    <input type="search" name="q" value="{{ busqueda }}" placeholder="Buscar producto">
+  </div>
+  <button class="btn btn-secundario" type="submit">Buscar</button>
+  {% if busqueda %}<a class="btn btn-texto" href="{{ url_for('productos.catalogo') }}">Limpiar</a>{% endif %}
+</form>
+
+{% if grupos %}
+  <div class="tipos-nav chips">
+    {% for tipo, lista in grupos %}
+      <a class="chip" href="#tipo-{{ tipo.name|lower }}">{{ tipo.value }} <span class="cant">{{ lista|length }}</span></a>
+    {% endfor %}
+  </div>
+
+  <div class="catalogo-grilla">
+  {% for tipo, lista in grupos %}
+    <section class="tarjeta tarjeta-tabla catalogo-tipo" id="tipo-{{ tipo.name|lower }}">
+      <h2 class="subtitulo catalogo-titulo">{{ icono("producto") }} {{ tipo.value }}</h2>
+      <div class="tabla-contenedor">
+        <table class="tabla">
+          <thead>
+            <tr><th>Producto</th><th>Categoría</th><th class="col-acciones"><span class="sr-only">Acciones</span></th></tr>
+          </thead>
+          <tbody>
+            {% for p in lista %}
+              <tr>
+                <td><strong>{{ p.nombre }}</strong></td>
+                <td>{{ p.categoria.nombre if p.categoria else "—" }}</td>
+                <td class="col-acciones">
+                  <a class="btn btn-texto btn-chico" href="{{ url_for('tickets.nuevo', tipo=p.tipo.name, producto_id=p.id_producto) }}">{{ icono("mas") }}<span class="ocultar-movil">Abrir ticket</span></a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endfor %}
+  </div>
+{% elif busqueda %}
+  <section class="tarjeta">{{ vacio("buscar", "Sin resultados", "No hay productos que coincidan con la búsqueda.") }}</section>
+{% else %}
+  <section class="tarjeta">{{ vacio("producto", "Todavía no hay productos", "Cuando se carguen productos, van a aparecer acá.") }}</section>
+{% endif %}
+{% endblock %}
