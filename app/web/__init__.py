@@ -3,8 +3,8 @@ from flask import g, render_template
 from markupsafe import Markup
 
 from app.errores import NoEncontradoError, PermisoError
-from app.models import EstadoTicket, TipoProducto
-from app.services import NotificacionService, TicketService
+from app.models import EstadoTicket
+from app.services import NotificacionService, ProductoService, TicketService
 from app.database import db_session
 from app.utilidades import fecha_relativa, formatear_fecha, resumir
 from app.web import seguridad
@@ -43,8 +43,15 @@ def registrar_web(app) -> None:
             "notificaciones_no_leidas": no_leidas,
             "tickets_en_cola": en_cola,
             "EstadoTicket": EstadoTicket,
-            "TipoProducto": TipoProducto,
+            # Tipos de producto (tabla): se consultan solo si la plantilla los usa.
+            "tipos_producto": _TiposPerezosos(),
         }
+
+    class _TiposPerezosos:
+        """Se puede recorrer con {% for t in tipos_producto %}; consulta la base recién al usarlo."""
+
+        def __iter__(self):
+            return iter(ProductoService(db_session).listar_tipos())
 
     # ------------------------------------------------ errores
     def pagina_error(codigo: int, titulo: str, mensaje: str):

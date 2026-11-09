@@ -68,7 +68,7 @@
         <label for="tipo_producto">Tipo de producto <span class="requerido">*</span></label>
         <select id="tipo_producto" name="tipo_producto" required>
           <option value="">— Elegí un tipo —</option>
-          {% for t in TipoProducto %}
+          {% for t in tipos_producto %}
             <option value="{{ t.name }}" {{ 'selected' if tipo_elegido == t.name }}>{{ t.value }}</option>
           {% endfor %}
           <option value="OTRO" {{ 'selected' if tipo_elegido == 'OTRO' }}>Otro / no está</option>

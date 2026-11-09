@@ -2,12 +2,14 @@
 from flask import Blueprint, flash, g, redirect, render_template, request, url_for
 
 from app.database import db_session
-from app.errores import ErrorDeNegocio
-from app.models import TipoProducto
+from app.errores import ErrorDeNegocio, ValidacionError
 from app.services import ProductoService, TicketService
 from app.web.seguridad import login_requerido, solo_representantes
 
 bp = Blueprint("productos", __name__, url_prefix="/productos")
+
+# Valor de la opción "+ Crear nuevo…" en los selectores de tipo y categoría.
+NUEVO = "__nuevo__"
 
 
 @bp.get("/catalogo")
@@ -17,7 +19,7 @@ def catalogo():
     servicio = ProductoService(db_session)
     busqueda = request.args.get("q", "").strip()
     productos = servicio.listar_productos(busqueda=busqueda or None)
-    grupos = [(tipo, [p for p in productos if p.tipo is tipo]) for tipo in TipoProducto]
+    grupos = [(tipo, [p for p in productos if p.tipo_codigo == tipo.codigo]) for tipo in servicio.listar_tipos()]
     return render_template(
         "productos/catalogo.html",
         grupos=[(tipo, lista) for tipo, lista in grupos if lista],
@@ -68,13 +70,23 @@ def _formulario(producto=None):
         "nombre": producto.nombre if producto else request.args.get("nombre", "").strip(),
         "tipo": producto.tipo.name if producto else request.args.get("tipo", "").strip(),
         "categoria_id": str(producto.categoria_id or "") if producto else "",
+        "tipo_nuevo": "",
+        "categoria_nueva": "",
     }
     destino = _destino_volver()
     if request.method == "POST":
         datos = {campo: request.form.get(campo, "").strip() for campo in datos}
+        # "+ Crear nuevo…": el tipo / la categoría se crean junto con el producto.
+        tipo_nuevo = datos["tipo_nuevo"] if datos["tipo"] == NUEVO else None
+        categoria_nueva = datos["categoria_nueva"] if datos["categoria_id"] == NUEVO else None
         try:
+            if datos["tipo"] == NUEVO and not tipo_nuevo:
+                raise ValidacionError("Escribí el nombre del nuevo tipo de producto.")
+            if datos["categoria_id"] == NUEVO and not categoria_nueva:
+                raise ValidacionError("Escribí el nombre de la nueva categoría.")
+            extra = {"tipo_nuevo": tipo_nuevo, "categoria_nueva": categoria_nueva}
             if producto is None:
-                nuevo = servicio.registrar_producto(datos["nombre"], datos["tipo"], datos["categoria_id"])
+                nuevo = servicio.registrar_producto(datos["nombre"], datos["tipo"], datos["categoria_id"], **extra)
                 numero = _ticket_a_vincular()
                 if numero is not None:
                     # Se registró desde un ticket con producto escrito por el cliente: queda vinculado.
@@ -86,14 +98,16 @@ def _formulario(producto=None):
                 else:
                     flash(f"Producto «{nuevo.nombre}» registrado.", "exito")
             else:
-                servicio.actualizar_producto(producto.id_producto, datos["nombre"], datos["tipo"], datos["categoria_id"])
+                servicio.actualizar_producto(
+                    producto.id_producto, datos["nombre"], datos["tipo"], datos["categoria_id"], **extra
+                )
                 flash("Producto actualizado.", "exito")
             return redirect(destino)
         except ErrorDeNegocio as error:
             flash(str(error), "error")
     return render_template(
         "productos/form.html", datos=datos, producto=producto, categorias=servicio.listar_categorias(),
-        destino=destino,
+        destino=destino, NUEVO=NUEVO,
     )
 
 
@@ -107,6 +121,17 @@ def nuevo():
 @solo_representantes
 def editar(producto_id: int):
     return _formulario(ProductoService(db_session).obtener(producto_id))
+
+
+@bp.post("/tipos")
+@solo_representantes
+def crear_tipo():
+    try:
+        tipo = ProductoService(db_session).crear_tipo(request.form.get("nombre", ""))
+        flash(f"Tipo de producto «{tipo.nombre}» creado.", "exito")
+    except ErrorDeNegocio as error:
+        flash(str(error), "error")
+    return redirect(request.referrer or url_for("productos.lista"))
 
 
 @bp.post("/categorias")

@@ -133,6 +133,42 @@ class TestProductosEnTickets:
             assert ticket.producto.nombre == "Secarropas 6kg"
             assert not ticket.producto_pendiente
 
+    def test_desde_el_ticket_se_crean_tipo_y_categoria_nuevos(self, app, web, datos_web, login):
+        """Bug: el cliente escribió «Caloventor vertical» (tipo Otro) y el representante no podía
+        crear un tipo de producto ni una categoría nuevos para registrarlo y cerrar el ticket."""
+        login("carla@mail.com")
+        web.post("/tickets/nuevo", data={
+            "tipo_producto": "OTRO", "producto_id": "OTRO", "producto_otro": "Caloventor vertical",
+            "descripcion": "El caloventor no calienta, solo tira aire frío.",
+        })
+        web.post("/logout")
+        login("ana@soporte.com")
+        html = web.get("/productos/nuevo?nombre=Caloventor+vertical&volver=ticket-1").get_data(as_text=True)
+        assert "Crear nuevo tipo" in html and "Crear nueva categoría" in html
+        web.post("/productos/nuevo?volver=ticket-1", data={
+            "nombre": "Caloventor vertical", "tipo": "__nuevo__", "tipo_nuevo": "Climatización",
+            "categoria_id": "__nuevo__", "categoria_nueva": "Caloventores",
+        })
+        web.post("/tickets/1/cerrar")
+        with app.app_context():
+            ticket = db_session.get(Ticket, 1)
+            assert ticket.producto.nombre == "Caloventor vertical"
+            assert ticket.tipo_producto.nombre == "Climatización"
+            assert ticket.producto.categoria.nombre == "Caloventores"
+            assert ticket.estado is EstadoTicket.CERRADO
+
+    def test_crear_nuevo_sin_escribir_el_nombre_avisa(self, app, web, datos_web, login):
+        login("ana@soporte.com")
+        html = web.post("/productos/nuevo", data={
+            "nombre": "Caloventor", "tipo": "__nuevo__", "tipo_nuevo": "", "categoria_id": datos_web.cat_id,
+        }).get_data(as_text=True)
+        assert "Escribí el nombre del nuevo tipo de producto" in html
+
+    def test_el_representante_crea_un_tipo_desde_productos(self, app, web, datos_web, login):
+        login("ana@soporte.com")
+        web.post("/productos/tipos", data={"nombre": "Climatización"})
+        assert "Climatización" in web.get("/productos/").get_data(as_text=True)
+
     def test_el_historial_dice_quien_abrio_el_ticket(self, web, datos_web, login):
         self._ticket_con_producto_escrito(web, login)  # lo abre Carla; queda logueada Ana
         html = web.get("/tickets/1").get_data(as_text=True)

@@ -376,6 +376,9 @@ textarea { resize: vertical; min-height: 110px; }
 .form-ticket .tarjeta { margin-bottom: 20px; }
 .form-ticket .tarjeta + .tarjeta { margin-top: 0; }
 .form-en-linea { display: flex; gap: 8px; margin-top: 16px; }
+/* Formulario de producto: campo para escribir un tipo / categoría nuevos */
+.campo-nuevo { margin-top: 2px; }
+.campo-nuevo[hidden] { display: none; }
 .form-asignar { display: flex; gap: 8px; }
 
 .paso { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }

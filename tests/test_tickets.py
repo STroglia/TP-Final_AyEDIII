@@ -5,7 +5,7 @@ CU001 Crear ticket · CU002 Consultar ticket (cliente) · estados y asignación.
 import pytest
 
 from app.errores import NoEncontradoError, PermisoError, ReglaNegocioError, ValidacionError
-from app.models import EstadoTicket, TipoProducto
+from app.models import EstadoTicket
 
 
 class TestCrearTicket:
@@ -29,14 +29,14 @@ class TestCrearTicket:
         )
         assert ticket.producto is producto
         # El tipo de producto queda guardado en el ticket (para estadísticas)
-        assert ticket.tipo_producto is TipoProducto.LINEA_BLANCA
+        assert ticket.tipo_producto.codigo == "LINEA_BLANCA"
 
     def test_crear_ticket_con_tipo_y_producto(self, tickets, representante, cliente, producto):
         ticket = tickets.crear_ticket(
             representante, cliente.id, "La heladera hace ruido.",
             producto_id=producto.id_producto, tipo_producto="LINEA_BLANCA", exigir_producto=True,
         )
-        assert ticket.tipo_producto is TipoProducto.LINEA_BLANCA
+        assert ticket.tipo_producto.codigo == "LINEA_BLANCA"
         assert ticket.producto is producto
 
     def test_el_producto_debe_ser_del_tipo_elegido(self, tickets, representante, cliente, producto):
@@ -58,8 +58,8 @@ class TestCrearTicket:
     def test_tickets_por_tipo_de_producto(self, tickets, representante, cliente, producto):
         tickets.crear_ticket(representante, cliente.id, "La heladera hace ruido.", producto_id=producto.id_producto)
         tickets.crear_ticket(representante, cliente.id, "Otra consulta sin producto.")
-        conteo = dict(tickets.tickets_por_tipo_producto())
-        assert conteo[TipoProducto.LINEA_BLANCA] == 1
+        conteo = {(t.codigo if t else None): n for t, n in tickets.tickets_por_tipo_producto()}
+        assert conteo["LINEA_BLANCA"] == 1
         assert conteo[None] == 1
 
     def test_se_guarda_quien_creo_el_ticket(self, tickets, representante, cliente):

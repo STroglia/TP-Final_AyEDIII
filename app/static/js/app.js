@@ -116,6 +116,21 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarProductos();
   }
 
+  // Formulario de producto: "+ Crear nuevo tipo / categoría…" muestra un campo para escribirlo
+  document.querySelectorAll("select[data-nuevo]").forEach((select) => {
+    const campo = document.getElementById(select.dataset.nuevo);
+    const input = campo?.querySelector("input");
+    if (!campo || !input) return;
+    const actualizar = (enfocar) => {
+      const crea = select.value === "__nuevo__";
+      campo.hidden = !crea;
+      input.required = crea;
+      if (crea && enfocar) input.focus();
+    };
+    select.addEventListener("change", () => actualizar(true));
+    actualizar(false);
+  });
+
   // Login: completar con un usuario de prueba
   document.querySelectorAll(".demo-usuario").forEach((boton) =>
     boton.addEventListener("click", () => {

@@ -13,13 +13,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.errores import PermisoError, ReglaNegocioError, ValidacionError
-from app.models.enums import EstadoTicket, TipoProducto
+from app.models.enums import EstadoTicket
 from app.models.hito import Hito
 from app.utilidades import ahora, resumir
 
 if TYPE_CHECKING:
     from app.models.notificacion import Notificacion
-    from app.models.producto import Producto
+    from app.models.producto import Producto, TipoProducto
     from app.models.usuario import Cliente, Representante, Usuario
 
 
@@ -43,8 +43,9 @@ class Ticket(Base):
     creado_por_id: Mapped[Optional[int]] = mapped_column(ForeignKey("usuarios.id"))
     # Tipo de producto (Línea blanca, Cocina...). Se guarda en el ticket además del producto
     # para poder sacar estadísticas por tipo.
-    tipo_producto: Mapped[Optional[TipoProducto]] = mapped_column(
-        SAEnum(TipoProducto, name="tipo_producto")
+    # La columna guarda el código del tipo (p. ej. LINEA_BLANCA).
+    tipo_producto_codigo: Mapped[Optional[str]] = mapped_column(
+        "tipo_producto", ForeignKey("tipos_producto.codigo")
     )
     # Producto escrito a mano por el cliente cuando no lo encuentra en el catálogo.
     producto_otro: Mapped[Optional[str]] = mapped_column(String(120))
@@ -55,6 +56,7 @@ class Ticket(Base):
     )
     creado_por: Mapped[Optional["Usuario"]] = relationship(foreign_keys=[creado_por_id])
     producto: Mapped[Optional["Producto"]] = relationship(back_populates="tickets")
+    tipo_producto: Mapped[Optional["TipoProducto"]] = relationship()
     # Composición: si se borra el ticket, se borran sus hitos.
     hitos: Mapped[List["Hito"]] = relationship(
         back_populates="ticket",
@@ -77,7 +79,7 @@ class Ticket(Base):
         producto = kwargs.get("producto")
         tipo = kwargs.get("tipo_producto")
         if producto is not None:
-            if tipo is not None and tipo is not producto.tipo:
+            if tipo is not None and tipo.codigo != producto.tipo.codigo:
                 raise ValidacionError("El producto elegido no corresponde al tipo de producto seleccionado.")
             kwargs["tipo_producto"] = producto.tipo
         kwargs.setdefault("estado", EstadoTicket.ABIERTO)

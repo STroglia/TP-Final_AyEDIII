@@ -6,7 +6,7 @@
   <div>
     <a class="enlace-volver" href="{{ destino }}">{{ icono("volver") }} Volver</a>
     <h1>{{ "Editar producto" if producto else "Nuevo producto" }}</h1>
-    <p>Indicá el nombre, el tipo y la categoría del producto.</p>
+    <p>Indicá el nombre, el tipo y la categoría del producto. Si el tipo o la categoría no existen, podés crearlos acá mismo.</p>
   </div>
 </div>
 
@@ -20,24 +20,31 @@
   <div class="fila-campos">
     <div class="campo">
       <label for="tipo">Tipo de producto <span class="requerido">*</span></label>
-      <select id="tipo" name="tipo" required>
+      <select id="tipo" name="tipo" required data-nuevo="campo-tipo-nuevo">
         <option value="">Elegí un tipo</option>
-        {% for t in TipoProducto %}
+        {% for t in tipos_producto %}
           <option value="{{ t.name }}" {{ 'selected' if datos.tipo == t.name }}>{{ t.value }}</option>
         {% endfor %}
+        <option value="{{ NUEVO }}" {{ 'selected' if datos.tipo == NUEVO }}>+ Crear nuevo tipo…</option>
       </select>
+      <div class="campo-nuevo" id="campo-tipo-nuevo" {{ '' if datos.tipo == NUEVO else 'hidden' }}>
+        <input id="tipo_nuevo" name="tipo_nuevo" type="text" maxlength="60" value="{{ datos.tipo_nuevo }}"
+               placeholder="Ej.: Climatización" aria-label="Nombre del nuevo tipo de producto">
+      </div>
     </div>
     <div class="campo">
       <label for="categoria_id">Categoría <span class="requerido">*</span></label>
-      <select id="categoria_id" name="categoria_id" required>
+      <select id="categoria_id" name="categoria_id" required data-nuevo="campo-categoria-nueva">
         <option value="">Elegí una categoría</option>
         {% for c in categorias %}
           <option value="{{ c.id_categoria }}" {{ 'selected' if datos.categoria_id == c.id_categoria|string }}>{{ c.nombre }}</option>
         {% endfor %}
+        <option value="{{ NUEVO }}" {{ 'selected' if datos.categoria_id == NUEVO }}>+ Crear nueva categoría…</option>
       </select>
-      {% if not categorias %}
-        <span class="ayuda">No hay categorías. <a href="{{ url_for('productos.lista') }}">Creá una</a> primero.</span>
-      {% endif %}
+      <div class="campo-nuevo" id="campo-categoria-nueva" {{ '' if datos.categoria_id == NUEVO else 'hidden' }}>
+        <input id="categoria_nueva" name="categoria_nueva" type="text" maxlength="80" value="{{ datos.categoria_nueva }}"
+               placeholder="Ej.: Caloventores" aria-label="Nombre de la nueva categoría">
+      </div>
     </div>
   </div>
   <div class="acciones-form">

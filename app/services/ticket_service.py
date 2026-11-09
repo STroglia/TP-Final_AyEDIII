@@ -93,11 +93,14 @@ class TicketService(Servicio):
     def tickets_por_tipo_producto(self) -> List[tuple]:
         """Cantidad de tickets por tipo de producto: [(TipoProducto | None, cantidad), ...]."""
         consulta = (
-            select(Ticket.tipo_producto, func.count(Ticket.numero_ticket))
-            .group_by(Ticket.tipo_producto)
+            select(Ticket.tipo_producto_codigo, func.count(Ticket.numero_ticket))
+            .group_by(Ticket.tipo_producto_codigo)
             .order_by(func.count(Ticket.numero_ticket).desc())
         )
-        return [(tipo, cantidad) for tipo, cantidad in self.session.execute(consulta)]
+        return [
+            (self.session.get(TipoProducto, codigo) if codigo else None, cantidad)
+            for codigo, cantidad in self.session.execute(consulta).all()
+        ]
 
     # ------------------------------------------------------------ CU001: crear ticket
     @transaccional
@@ -289,16 +292,15 @@ class TicketService(Servicio):
         except KeyError:
             raise ValidacionError("Estado de ticket inválido.") from None
 
-    @staticmethod
-    def _a_tipo_producto(valor) -> Optional[TipoProducto]:
+    def _a_tipo_producto(self, valor) -> Optional[TipoProducto]:
         if valor in (None, ""):
             return None
         if isinstance(valor, TipoProducto):
             return valor
-        try:
-            return TipoProducto[str(valor).strip().upper()]
-        except KeyError:
-            raise ValidacionError("Elegí un tipo de producto válido.") from None
+        tipo = self.session.get(TipoProducto, str(valor).strip().upper())
+        if tipo is None:
+            raise ValidacionError("Elegí un tipo de producto válido.")
+        return tipo
 
     def _obtener_producto(self, producto_id) -> Optional[Producto]:
         if producto_id in (None, ""):

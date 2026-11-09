@@ -19,7 +19,7 @@
       </div>
       <select name="tipo" aria-label="Tipo de producto">
         <option value="">Todos los tipos</option>
-        {% for t in TipoProducto %}
+        {% for t in tipos_producto %}
           <option value="{{ t.name }}" {{ 'selected' if filtros.tipo == t.name }}>{{ t.value }}</option>
         {% endfor %}
       </select>
@@ -73,6 +73,21 @@
     {% else %}
       <p class="texto-suave">Todavía no hay tickets.</p>
     {% endif %}
+
+    <h2 class="subtitulo" style="margin-top: 24px">Tipos de producto</h2>
+    <ul class="lista-categorias">
+      {% for t in tipos_producto %}
+        <li>
+          <a href="{{ url_for('productos.lista', tipo=t.name) }}">{{ icono("producto") }} {{ t.value }}</a>
+          <span class="texto-suave">{{ t.productos|length }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    <form method="post" action="{{ url_for('productos.crear_tipo') }}" class="form-en-linea">
+      {{ csrf() }}
+      <input type="text" name="nombre" placeholder="Nuevo tipo de producto" maxlength="60" required aria-label="Nombre del tipo de producto">
+      <button class="btn btn-secundario" type="submit" aria-label="Agregar tipo de producto">{{ icono("mas") }}</button>
+    </form>
 
     <h2 class="subtitulo" style="margin-top: 24px">Categorías</h2>
     {% if categorias %}

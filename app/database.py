@@ -46,6 +46,29 @@ def crear_tablas(engine: Engine) -> None:
 
     Base.metadata.create_all(engine)
     _actualizar_esquema(engine)
+    _cargar_tipos_producto(engine)
+
+
+def _cargar_tipos_producto(engine: Engine) -> None:
+    """Asegura que existan los tipos de producto iniciales y cualquier tipo que ya
+    estuviera usado en productos o tickets (bases creadas cuando el tipo era una lista fija)."""
+    from app.models import TIPOS_PRODUCTO_INICIALES
+
+    with engine.begin() as conexion:
+        existentes = {fila[0] for fila in conexion.execute(text("SELECT codigo FROM tipos_producto"))}
+        usados = {
+            fila[0] for fila in conexion.execute(text(
+                "SELECT tipo FROM productos UNION SELECT tipo_producto FROM tickets WHERE tipo_producto IS NOT NULL"
+            ))
+        }
+        nombres = dict(TIPOS_PRODUCTO_INICIALES)
+        for codigo in [c for c, _ in TIPOS_PRODUCTO_INICIALES] + sorted(usados - set(nombres)):
+            if codigo and codigo not in existentes:
+                conexion.execute(
+                    text("INSERT INTO tipos_producto (codigo, nombre) VALUES (:codigo, :nombre)"),
+                    {"codigo": codigo, "nombre": nombres.get(codigo, codigo.replace("_", " ").capitalize())},
+                )
+                existentes.add(codigo)
 
 
 def _actualizar_esquema(engine: Engine) -> None:

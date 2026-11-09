@@ -43,7 +43,7 @@ Los requerimientos RF01 a RF14 provienen del documento original y RF15 a RF17 de
 | RF13 | Gestionar el estado de cada ticket | Acciones *Tomar*, *Cerrar* y *Reabrir* en el detalle. |
 | RF14 | Gestionar las notificaciones de los tickets | Bandeja con marcar como leída, marcar todas y acceso directo al ticket. |
 | RF15 | Asociar productos con tickets | Selector de producto (opcional) al crear el ticket. |
-| RF16 | Gestionar el tipo de producto asociado | Enumeración `TipoProducto` (Línea blanca, Cocina, Electro, Pequeños electrodomésticos). |
+| RF16 | Gestionar el tipo de producto asociado | Tabla `TipoProducto`: arranca con Línea blanca, Cocina, Electro y Pequeños electrodomésticos; los representantes pueden crear tipos nuevos. |
 | RF17 | Gestionar productos (17.1 registrar · 17.2 listar) | *Productos*: alta, edición, categorías y listado con filtros. |
 
 ## 4. Requerimientos no funcionales
@@ -202,8 +202,11 @@ Prioridad: **Alta** (vital), **Media** (importante), **Baja** (quedaría bien).
 **Como** representante, **quiero** registrar productos con su tipo y categoría, **para** asociarlos a los tickets.
 *Prioridad: Media · RF16, RF17.1*
 
-- Datos obligatorios: nombre (único), tipo (de la lista `TipoProducto`) y categoría.
-- Las categorías se crean desde la misma pantalla y no se pueden repetir.
+- Datos obligatorios: nombre (único), tipo de producto y categoría.
+- Si el tipo o la categoría no existen, se crean desde el mismo formulario del producto
+  ("+ Crear nuevo tipo…" / "+ Crear nueva categoría…"). Esto cubre el caso del producto escrito
+  a mano por el cliente (opción "Otro"), que el representante debe vincular para cerrar el ticket.
+- Tipos y categorías no se pueden repetir (sin distinguir mayúsculas).
 
 #### HU16 · Listar productos
 **Como** representante, **quiero** listar los productos y filtrarlos por tipo, categoría o nombre, **para** consultarlos fácilmente.
